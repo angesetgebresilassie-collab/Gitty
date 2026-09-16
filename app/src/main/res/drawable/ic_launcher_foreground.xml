@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple rounded "branch/fork" glyph on a transparent field, sized to sit safely
+         within the adaptive-icon mask's inner safe zone. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,30 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M68,30 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,78 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:pathData="M40,38 L40,70 M40,54 C40,44 50,44 60,44 L60,38" />
+</vector>

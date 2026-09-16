@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.GitHubClient" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
