@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MergeType
-import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -165,7 +165,7 @@ fun CheckStatusIcon(status: String, conclusion: String?, modifier: Modifier = Mo
         CheckState.IN_PROGRESS -> Icon(Icons.Filled.HourglassEmpty, contentDescription = "Running", tint = HubBlue, modifier = modifier)
         CheckState.SUCCESS -> Icon(Icons.Filled.CheckCircle, contentDescription = "Passed", tint = OpenGreen, modifier = modifier)
         CheckState.FAILURE -> Icon(Icons.Filled.Cancel, contentDescription = "Failed", tint = ClosedRed, modifier = modifier)
-        CheckState.NEUTRAL -> Icon(Icons.Filled.RemoveCircleOutline, contentDescription = "Skipped", tint = DraftGray, modifier = modifier)
+        CheckState.NEUTRAL -> Icon(Icons.Filled.Block, contentDescription = "Skipped", tint = DraftGray, modifier = modifier)
     }
 }
 
