@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.github.jeziellago.compose.markdown.MarkdownText
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import com.example.githubclient.data.model.PullRequest
 import com.example.githubclient.ui.components.*
 import com.example.githubclient.ui.theme.ClosedRed
