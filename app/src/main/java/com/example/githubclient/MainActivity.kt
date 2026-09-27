@@ -1,5 +1,7 @@
 package com.example.githubclient
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +14,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -82,6 +85,7 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
     }
 
     val navController = rememberNavController()
+    val context = LocalContext.current
     val bottomDestinations = listOf(
         BottomDestination(Destinations.REPOS, "Repos", Icons.Filled.Folder),
         BottomDestination(Destinations.NOTIFICATIONS, "Alerts", Icons.Filled.Notifications),
@@ -171,7 +175,10 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
                         viewModel.loadPrDetail(owner, name, pr.number)
                         navController.navigate(Destinations.prDetail(owner, name, pr.number))
                     },
-                    onRetry = { viewModel.loadRepoDetail(owner, name) }
+                    onRetry = { viewModel.loadRepoDetail(owner, name) },
+                    onBrowseFiles = { navController.navigate(Destinations.repoFiles(owner, name)) },
+                    onNewIssue = { navController.navigate(Destinations.createIssue(owner, name)) },
+                    onNewPr = { navController.navigate(Destinations.createPr(owner, name)) }
                 )
             }
             composable(
@@ -213,7 +220,123 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
                     onRetry = { viewModel.loadPrDetail(owner, name, number) },
                     onMerge = { viewModel.mergePr(owner, name, number) },
                     isMerging = viewModel.isMerging,
-                    mergeError = viewModel.mergeError
+                    mergeError = viewModel.mergeError,
+                    onViewFiles = { navController.navigate(Destinations.prFiles(owner, name, number)) }
+                )
+            }
+            composable(
+                route = Destinations.PR_FILES,
+                arguments = listOf(
+                    navArgument("owner") { type = NavType.StringType },
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("number") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val owner = backStackEntry.arguments?.getString("owner").orEmpty()
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val number = backStackEntry.arguments?.getInt("number") ?: 0
+
+                LaunchedEffect(owner, name, number) { viewModel.loadPrFiles(owner, name, number) }
+
+                PrFilesScreen(
+                    prNumber = number,
+                    files = viewModel.prFiles,
+                    onBack = { navController.popBackStack() },
+                    onRetry = { viewModel.loadPrFiles(owner, name, number) }
+                )
+            }
+            composable(
+                route = Destinations.REPO_FILES,
+                arguments = listOf(
+                    navArgument("owner") { type = NavType.StringType },
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("path") { type = NavType.StringType; defaultValue = "" }
+                )
+            ) { backStackEntry ->
+                val owner = backStackEntry.arguments?.getString("owner").orEmpty()
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val path = backStackEntry.arguments?.getString("path").orEmpty()
+
+                LaunchedEffect(owner, name, path) { viewModel.loadRepoContents(owner, name, path) }
+
+                RepoFileBrowserScreen(
+                    repoFullName = "$owner/$name",
+                    currentPath = path,
+                    contents = viewModel.repoBrowser,
+                    onBack = { navController.popBackStack() },
+                    onRetry = { viewModel.loadRepoContents(owner, name, path) },
+                    onOpenFolder = { newPath -> navController.navigate(Destinations.repoFiles(owner, name, newPath)) },
+                    onOpenFile = { entry -> navController.navigate(Destinations.fileViewer(owner, name, entry.path)) }
+                )
+            }
+            composable(
+                route = Destinations.FILE_VIEWER,
+                arguments = listOf(
+                    navArgument("owner") { type = NavType.StringType },
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("path") { type = NavType.StringType; defaultValue = "" }
+                )
+            ) { backStackEntry ->
+                val owner = backStackEntry.arguments?.getString("owner").orEmpty()
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val path = backStackEntry.arguments?.getString("path").orEmpty()
+
+                LaunchedEffect(owner, name, path) { viewModel.loadFileContent(owner, name, path) }
+
+                FileViewerScreen(
+                    file = viewModel.fileContent,
+                    onBack = { navController.popBackStack() },
+                    onRetry = { viewModel.loadFileContent(owner, name, path) },
+                    onOpenInBrowser = { url ->
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
+                )
+            }
+            composable(
+                route = Destinations.CREATE_ISSUE,
+                arguments = listOf(navArgument("owner") { type = NavType.StringType }, navArgument("name") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val owner = backStackEntry.arguments?.getString("owner").orEmpty()
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+
+                CreateIssueScreen(
+                    repoFullName = "$owner/$name",
+                    isSubmitting = viewModel.isCreatingIssue,
+                    errorMessage = viewModel.createIssueError,
+                    onBack = { navController.popBackStack() },
+                    onSubmit = { title, body ->
+                        viewModel.createIssue(owner, name, title, body) { issue ->
+                            navController.popBackStack()
+                            viewModel.loadRepoDetail(owner, name)
+                            viewModel.loadIssueDetail(owner, name, issue.number)
+                            navController.navigate(Destinations.issueDetail(owner, name, issue.number))
+                        }
+                    }
+                )
+            }
+            composable(
+                route = Destinations.CREATE_PR,
+                arguments = listOf(navArgument("owner") { type = NavType.StringType }, navArgument("name") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val owner = backStackEntry.arguments?.getString("owner").orEmpty()
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+
+                LaunchedEffect(owner, name) { viewModel.loadBranches(owner, name) }
+
+                CreatePrScreen(
+                    repoFullName = "$owner/$name",
+                    branches = viewModel.branches,
+                    isSubmitting = viewModel.isCreatingPr,
+                    errorMessage = viewModel.createPrError,
+                    onBack = { navController.popBackStack() },
+                    onSubmit = { title, body, head, base, draft ->
+                        viewModel.createPullRequest(owner, name, title, body, head, base, draft) { pr ->
+                            navController.popBackStack()
+                            viewModel.loadRepoDetail(owner, name)
+                            viewModel.loadPrDetail(owner, name, pr.number)
+                            navController.navigate(Destinations.prDetail(owner, name, pr.number))
+                        }
+                    }
                 )
             }
         }
