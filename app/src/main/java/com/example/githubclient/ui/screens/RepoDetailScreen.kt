@@ -5,8 +5,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,34 +32,54 @@ fun RepoDetailScreen(
     onBack: () -> Unit,
     onIssueClick: (Issue) -> Unit,
     onPrClick: (PullRequest) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onBrowseFiles: () -> Unit,
+    onNewIssue: () -> Unit,
+    onNewPr: () -> Unit
 ) {
-    Column(Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(repoFullName, maxLines = 1) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = { Text(repoFullName, maxLines = 1) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onBrowseFiles) {
+                        Icon(Icons.Filled.Folder, contentDescription = "Browse files")
+                    }
                 }
-            }
-        )
+            )
 
-        TabRow(selectedTabIndex = if (selectedTab == RepoTab.ISSUES) 0 else 1) {
-            Tab(
-                selected = selectedTab == RepoTab.ISSUES,
-                onClick = { onTabSelected(RepoTab.ISSUES) },
-                text = { Text("Issues") }
-            )
-            Tab(
-                selected = selectedTab == RepoTab.PULL_REQUESTS,
-                onClick = { onTabSelected(RepoTab.PULL_REQUESTS) },
-                text = { Text("Pull Requests") }
-            )
+            TabRow(selectedTabIndex = if (selectedTab == RepoTab.ISSUES) 0 else 1) {
+                Tab(
+                    selected = selectedTab == RepoTab.ISSUES,
+                    onClick = { onTabSelected(RepoTab.ISSUES) },
+                    text = { Text("Issues") }
+                )
+                Tab(
+                    selected = selectedTab == RepoTab.PULL_REQUESTS,
+                    onClick = { onTabSelected(RepoTab.PULL_REQUESTS) },
+                    text = { Text("Pull Requests") }
+                )
+            }
+
+            when (selectedTab) {
+                RepoTab.ISSUES -> IssuesTab(issues, onIssueClick, onRetry)
+                RepoTab.PULL_REQUESTS -> PullRequestsTab(pullRequests, onPrClick, onRetry)
+            }
         }
 
-        when (selectedTab) {
-            RepoTab.ISSUES -> IssuesTab(issues, onIssueClick, onRetry)
-            RepoTab.PULL_REQUESTS -> PullRequestsTab(pullRequests, onPrClick, onRetry)
+        FloatingActionButton(
+            onClick = { if (selectedTab == RepoTab.ISSUES) onNewIssue() else onNewPr() },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
+        ) {
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = if (selectedTab == RepoTab.ISSUES) "New issue" else "New pull request"
+            )
         }
     }
 }
