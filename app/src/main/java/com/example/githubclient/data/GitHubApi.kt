@@ -129,6 +129,23 @@ interface GitHubApi {
         @Query("ref") ref: String? = null
     ): RepoContent
 
+    // --- GitHub Actions ---
+
+    @GET("repos/{owner}/{repo}/commits/{ref}/check-runs")
+    suspend fun getCheckRuns(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("ref") ref: String,
+        @Query("per_page") perPage: Int = 50
+    ): CheckRunsResponse
+
+    @GET("repos/{owner}/{repo}/actions/runs")
+    suspend fun getWorkflowRuns(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("per_page") perPage: Int = 30
+    ): WorkflowRunsResponse
+
     @GET("notifications")
     suspend fun getNotifications(
         @Query("all") all: Boolean = false
@@ -143,6 +160,16 @@ interface GitHubApi {
 data class SearchReposResponse(
     @com.google.gson.annotations.SerializedName("total_count") val totalCount: Int,
     val items: List<Repo>
+)
+
+data class CheckRunsResponse(
+    @com.google.gson.annotations.SerializedName("total_count") val totalCount: Int,
+    @com.google.gson.annotations.SerializedName("check_runs") val checkRuns: List<CheckRun>
+)
+
+data class WorkflowRunsResponse(
+    @com.google.gson.annotations.SerializedName("total_count") val totalCount: Int,
+    @com.google.gson.annotations.SerializedName("workflow_runs") val workflowRuns: List<WorkflowRun>
 )
 
 data class CommentBody(val body: String)
