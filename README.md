@@ -12,10 +12,16 @@ Pull Request screens for anyone who isn't already fluent in GitHub jargon.
   in plain text.
 - **Repos** — lists your repositories, searchable, with stars/forks/language.
 - **Issues** — list + detail, with comments and the ability to post a new
-  comment. An explainer card describes what an issue actually is.
+  comment, plus creating brand-new issues from a form. An explainer card
+  describes what an issue actually is.
 - **Pull Requests** — list + detail, showing diff stats (files/commits/
-  additions/deletions), branch info, and a merge button. Same plain-English
-  treatment for what a PR is and what merging does.
+  additions/deletions), branch info, and a merge button. A "Files changed"
+  view renders the per-file unified diff with colored +/- lines. Creating a
+  new PR is a form with head/base branch pickers and a draft toggle. Same
+  plain-English treatment for what a PR is and what merging does.
+- **Repo file browser** — navigate a repository's file tree folder by folder,
+  and open any text file to read its contents inline (binary/oversized files
+  fall back to an "Open on GitHub" link).
 - **Notifications** — your GitHub notification inbox.
 - **Profile** — your account stats and sign-out.
 
@@ -23,10 +29,10 @@ Pull Request screens for anyone who isn't already fluent in GitHub jargon.
 
 This is a strong, working foundation — not full parity with github.com.
 Realistic next additions, roughly in order of value:
-- Inline diff/file viewer for PRs (currently shows stats, not the diff itself)
-- Creating new issues/PRs from the app
 - Push notifications (currently pull-to-refresh / manual reload)
-- Code search, Actions/CI status, repo file browser
+- Code search, Actions/CI status
+- Inline PR review comments on specific diff lines (the diff viewer is
+  currently read-only)
 - OAuth App flow (for if you ever want to publish this rather than use it
   yourself with a personal token)
 
@@ -45,7 +51,10 @@ Realistic next additions, roughly in order of value:
 
 - `data/` — Retrofit API interface, models matching GitHub's JSON, the
   encrypted token store, and the OkHttp client that injects the
-  `Authorization` header per request.
+  `Authorization` header per request. Most reads go through GitHub's GraphQL
+  API (`data/graphql/`) to fetch nested data in one round trip; the newer
+  REST-only endpoints (PR files, repo contents, branches, creating
+  issues/PRs) live directly on `GitHubApi`.
 - `ui/screens/` — one file per screen, all stateless Composables driven by
   a simple `LoadState<T>` (Loading/Success/Error) sealed class.
 - `AppViewModel.kt` — the single source of truth; owns all network calls
