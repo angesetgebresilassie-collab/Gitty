@@ -28,7 +28,8 @@ fun PullRequestDetailScreen(
     onRetry: () -> Unit,
     onMerge: () -> Unit,
     isMerging: Boolean,
-    mergeError: String?
+    mergeError: String?,
+    onViewFiles: () -> Unit
 ) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -78,13 +79,22 @@ fun PullRequestDetailScreen(
 
                     item {
                         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                            Row(
-                                Modifier.padding(16.dp).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                StatColumn(label = "Commits", value = data.commitCount?.toString() ?: "—")
-                                StatColumn(label = "Files changed", value = data.changedFiles?.toString() ?: "—")
-                                DiffStatColumn(additions = data.additions ?: 0, deletions = data.deletions ?: 0)
+                            Column {
+                                Row(
+                                    Modifier.padding(16.dp).fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatColumn(label = "Commits", value = data.commitCount?.toString() ?: "—")
+                                    StatColumn(label = "Files changed", value = data.changedFiles?.toString() ?: "—")
+                                    DiffStatColumn(additions = data.additions ?: 0, deletions = data.deletions ?: 0)
+                                }
+                                OutlinedButton(
+                                    onClick = onViewFiles,
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).padding(bottom = 12.dp)
+                                ) {
+                                    Text("View file changes")
+                                }
                             }
                         }
                     }
