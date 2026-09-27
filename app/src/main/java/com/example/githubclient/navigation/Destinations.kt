@@ -15,6 +15,7 @@ object Destinations {
     const val FILE_VIEWER = "repo/{owner}/{name}/file?path={path}"
     const val CREATE_ISSUE = "repo/{owner}/{name}/issue/new"
     const val CREATE_PR = "repo/{owner}/{name}/pr/new"
+    const val REPO_ACTIONS = "repo/{owner}/{name}/actions"
 
     fun repoDetail(owner: String, name: String) = "repo/$owner/$name"
     fun issueDetail(owner: String, name: String, number: Int) = "repo/$owner/$name/issue/$number"
@@ -24,4 +25,5 @@ object Destinations {
     fun fileViewer(owner: String, name: String, path: String) = "repo/$owner/$name/file?path=${Uri.encode(path)}"
     fun createIssue(owner: String, name: String) = "repo/$owner/$name/issue/new"
     fun createPr(owner: String, name: String) = "repo/$owner/$name/pr/new"
+    fun repoActions(owner: String, name: String) = "repo/$owner/$name/actions"
 }
