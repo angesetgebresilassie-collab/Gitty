@@ -109,3 +109,52 @@ data class AuthenticatedUser(
     val followers: Int,
     val following: Int
 )
+
+// --- PR diff viewer ---
+
+data class PrFile(
+    val filename: String,
+    val status: String, // "added" | "removed" | "modified" | "renamed"
+    val additions: Int,
+    val deletions: Int,
+    val changes: Int,
+    // Unified diff text for this file. Absent for binary files or very large diffs.
+    val patch: String?
+)
+
+// --- Create PR (branch pickers) ---
+
+data class BranchRef(
+    val name: String
+)
+
+// --- Repo file browser ---
+
+data class RepoContent(
+    val name: String,
+    val path: String,
+    val type: String, // "file" or "dir"
+    val size: Int,
+    // Base64 file content. Only present when fetching a single file, and only
+    // when the file is under GitHub's ~1MB inline-content limit.
+    val content: String?,
+    val encoding: String?,
+    @SerializedName("download_url") val downloadUrl: String?,
+    @SerializedName("html_url") val htmlUrl: String?
+) {
+    val isDirectory: Boolean get() = type == "dir"
+}
+
+/** Decodes [RepoContent.content] to text, or null if it's missing/binary/undecodable. */
+fun RepoContent.decodedText(): String? {
+    if (content.isNullOrBlank() || !encoding.equals("base64", ignoreCase = true)) return null
+    return try {
+        val clean = content.replace("\n", "")
+        val bytes = android.util.Base64.decode(clean, android.util.Base64.DEFAULT)
+        val text = String(bytes, Charsets.UTF_8)
+        // A decoded "text" file full of replacement characters is actually binary.
+        if (text.count { it == '\uFFFD' } > text.length / 10) null else text
+    } catch (e: Exception) {
+        null
+    }
+}
