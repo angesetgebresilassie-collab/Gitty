@@ -14,7 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.jeziellago.compose.markdowntext.MarkdownText
+import com.github.jeziellago.compose.markdown.MarkdownText
+import com.example.githubclient.data.model.CheckRun
 import com.example.githubclient.data.model.PullRequest
 import com.example.githubclient.ui.components.*
 import com.example.githubclient.ui.theme.ClosedRed
@@ -24,12 +25,14 @@ import com.example.githubclient.ui.theme.OpenGreen
 @Composable
 fun PullRequestDetailScreen(
     pr: LoadState<PullRequest>,
+    checkRuns: LoadState<List<CheckRun>>,
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onMerge: () -> Unit,
     isMerging: Boolean,
     mergeError: String?,
-    onViewFiles: () -> Unit
+    onViewFiles: () -> Unit,
+    onOpenCheck: (String) -> Unit
 ) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -100,6 +103,10 @@ fun PullRequestDetailScreen(
                     }
 
                     item {
+                        ChecksCard(checkRuns = checkRuns, onOpenCheck = onOpenCheck)
+                    }
+
+                    item {
                         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(1.dp)) {
                             Box(Modifier.padding(16.dp)) {
                                 if (data.body.isNullOrBlank()) {
@@ -137,6 +144,50 @@ fun PullRequestDetailScreen(
                     item { Spacer(Modifier.height(40.dp)) }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ChecksCard(checkRuns: LoadState<List<CheckRun>>, onOpenCheck: (String) -> Unit) {
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(1.dp)) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text("Checks", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+            when (checkRuns) {
+                is LoadState.Loading -> {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    }
+                }
+                is LoadState.Error -> {
+                    Text(
+                        "Couldn't load CI status.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
+                }
+                is LoadState.Success -> {
+                    if (checkRuns.data.isEmpty()) {
+                        Text(
+                            "No checks have run on this branch.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+                    } else {
+                        checkRuns.data.forEach { run ->
+                            CheckRunRow(
+                                name = run.name,
+                                status = run.status,
+                                conclusion = run.conclusion,
+                                onClick = { run.htmlUrl?.let(onOpenCheck) }
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
         }
     }
 }
