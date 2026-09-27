@@ -193,7 +193,7 @@ class AppViewModel(
                 ).unwrap().repository?.issue
 
                 if (issue == null) {
-                    val err = LoadState.Error<Nothing>("That issue couldn't be found.")
+                    val err = LoadState.Error("That issue couldn't be found.")
                     currentIssue = err
                     issueComments = err
                 } else {
