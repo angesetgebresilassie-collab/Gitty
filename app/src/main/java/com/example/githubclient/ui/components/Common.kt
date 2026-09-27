@@ -1,14 +1,19 @@
 package com.example.githubclient.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MergeType
+import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -137,5 +142,41 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
         FilledTonalButton(onClick = onRetry) { Text("Retry") }
+    }
+}
+
+// --- GitHub Actions / Checks status ---
+
+enum class CheckState { QUEUED, IN_PROGRESS, SUCCESS, FAILURE, NEUTRAL }
+
+/** Maps GitHub's status/conclusion pair (used by both check-runs and workflow-runs) to a simple state. */
+fun checkState(status: String, conclusion: String?): CheckState = when {
+    status == "queued" -> CheckState.QUEUED
+    status != "completed" -> CheckState.IN_PROGRESS
+    conclusion == "success" -> CheckState.SUCCESS
+    conclusion == "failure" || conclusion == "timed_out" || conclusion == "action_required" -> CheckState.FAILURE
+    else -> CheckState.NEUTRAL // cancelled, skipped, neutral, stale
+}
+
+@Composable
+fun CheckStatusIcon(status: String, conclusion: String?, modifier: Modifier = Modifier) {
+    when (checkState(status, conclusion)) {
+        CheckState.QUEUED -> Icon(Icons.Filled.Schedule, contentDescription = "Queued", tint = DraftGray, modifier = modifier)
+        CheckState.IN_PROGRESS -> Icon(Icons.Filled.HourglassEmpty, contentDescription = "Running", tint = HubBlue, modifier = modifier)
+        CheckState.SUCCESS -> Icon(Icons.Filled.CheckCircle, contentDescription = "Passed", tint = OpenGreen, modifier = modifier)
+        CheckState.FAILURE -> Icon(Icons.Filled.Cancel, contentDescription = "Failed", tint = ClosedRed, modifier = modifier)
+        CheckState.NEUTRAL -> Icon(Icons.Filled.RemoveCircleOutline, contentDescription = "Skipped", tint = DraftGray, modifier = modifier)
+    }
+}
+
+@Composable
+fun CheckRunRow(name: String, status: String, conclusion: String?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CheckStatusIcon(status, conclusion, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
     }
 }
