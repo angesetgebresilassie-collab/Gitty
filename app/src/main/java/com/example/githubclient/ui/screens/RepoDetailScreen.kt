@@ -7,9 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,7 +50,7 @@ fun RepoDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = onOpenActions) {
-                        Icon(Icons.Filled.PlayCircleOutline, contentDescription = "Actions")
+                        Icon(Icons.Filled.PlayArrow, contentDescription = "Actions")
                     }
                     IconButton(onClick = onBrowseFiles) {
                         Icon(Icons.Filled.Folder, contentDescription = "Browse files")
@@ -199,7 +199,7 @@ private fun IssueCard(issue: Issue, onClick: () -> Unit) {
                 Text("opened by ${issue.user.login}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (issue.comments > 0) {
                     Spacer(Modifier.width(12.dp))
-                    Icon(Icons.Filled.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Filled.Comment, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width(3.dp))
                     Text("${issue.comments}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
