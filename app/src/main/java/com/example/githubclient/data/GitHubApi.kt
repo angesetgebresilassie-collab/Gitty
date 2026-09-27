@@ -58,6 +58,13 @@ interface GitHubApi {
         @Body body: StateBody
     ): Issue
 
+    @POST("repos/{owner}/{repo}/issues")
+    suspend fun createIssue(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Body body: CreateIssueBody
+    ): Issue
+
     @GET("repos/{owner}/{repo}/pulls")
     suspend fun getPullRequests(
         @Path("owner") owner: String,
@@ -73,12 +80,54 @@ interface GitHubApi {
         @Path("number") number: Int
     ): PullRequest
 
+    @GET("repos/{owner}/{repo}/pulls/{number}/files")
+    suspend fun getPullRequestFiles(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("number") number: Int,
+        @Query("per_page") perPage: Int = 100
+    ): List<PrFile>
+
     @PUT("repos/{owner}/{repo}/pulls/{number}/merge")
     suspend fun mergePullRequest(
         @Path("owner") owner: String,
         @Path("repo") repo: String,
         @Path("number") number: Int
     ): retrofit2.Response<Unit>
+
+    @POST("repos/{owner}/{repo}/pulls")
+    suspend fun createPullRequest(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Body body: CreatePrBody
+    ): PullRequest
+
+    @GET("repos/{owner}/{repo}/branches")
+    suspend fun getBranches(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("per_page") perPage: Int = 100
+    ): List<BranchRef>
+
+    // GitHub's contents endpoint returns a JSON array for a directory and a
+    // single object for a file, at the exact same URL. We declare it twice
+    // with different return types and call whichever one fits the caller's
+    // context (a directory listing already told us which entries are files).
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun getDirectoryContents(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path(value = "path", encoded = true) path: String = "",
+        @Query("ref") ref: String? = null
+    ): List<RepoContent>
+
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun getFileContent(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path(value = "path", encoded = true) path: String,
+        @Query("ref") ref: String? = null
+    ): RepoContent
 
     @GET("notifications")
     suspend fun getNotifications(
@@ -98,3 +147,5 @@ data class SearchReposResponse(
 
 data class CommentBody(val body: String)
 data class StateBody(val state: String)
+data class CreateIssueBody(val title: String, val body: String?)
+data class CreatePrBody(val title: String, val body: String?, val head: String, val base: String, val draft: Boolean = false)
