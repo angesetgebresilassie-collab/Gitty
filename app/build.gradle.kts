@@ -63,4 +63,8 @@ dependencies {
 
     // Markdown rendering for issue/PR bodies
     implementation("com.github.jeziellago:compose-markdown:0.5.4")
+
+    // Background polling for notifications (GitHub has no push channel for
+    // third-party token-based clients, so we poll periodically instead)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 }
