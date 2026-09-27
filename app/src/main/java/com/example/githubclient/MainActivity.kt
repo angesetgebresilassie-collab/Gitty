@@ -1,10 +1,15 @@
 package com.example.githubclient
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -42,8 +48,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val pendingNavigation = mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingNavigation.value = intent?.getStringExtra(EXTRA_NAVIGATE_TO)
         setContent {
             GitHubClientTheme {
                 Surface {
@@ -53,18 +62,34 @@ class MainActivity : ComponentActivity() {
                             val app = application as GitHubClientApp
                             app.refreshApi()
                             app.clients!!
-                        }
+                        },
+                        pendingNavigation = pendingNavigation
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingNavigation.value = intent.getStringExtra(EXTRA_NAVIGATE_TO)
+    }
+
+    companion object {
+        const val EXTRA_NAVIGATE_TO = "navigate_to"
+        const val NAV_NOTIFICATIONS = "notifications"
     }
 }
 
 private data class BottomDestination(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 @Composable
-fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubclient.data.GitHubClients) {
+fun HubApp(
+    viewModel: AppViewModel,
+    refreshApiAndGet: () -> com.example.githubclient.data.GitHubClients,
+    pendingNavigation: MutableState<String?>
+) {
     if (!viewModel.isLoggedIn) {
         LoginScreen(
             onTokenSaved = {},
@@ -84,13 +109,34 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
         viewModel.loadInitialData()
     }
 
-    val navController = rememberNavController()
     val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    val navController = rememberNavController()
     val bottomDestinations = listOf(
         BottomDestination(Destinations.REPOS, "Repos", Icons.Filled.Folder),
         BottomDestination(Destinations.NOTIFICATIONS, "Alerts", Icons.Filled.Notifications),
         BottomDestination(Destinations.PROFILE, "Profile", Icons.Filled.Person)
     )
+
+    LaunchedEffect(pendingNavigation.value) {
+        val target = pendingNavigation.value
+        if (target == MainActivity.NAV_NOTIFICATIONS) {
+            navController.navigate(Destinations.NOTIFICATIONS) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            pendingNavigation.value = null
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -148,6 +194,8 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
                     onRetry = { viewModel.loadUser() },
                     onSignOut = {
                         viewModel.signOut()
+                        val app = context.applicationContext as GitHubClientApp
+                        app.refreshApi()
                         navController.navigate(Destinations.REPOS) { popUpTo(0) }
                     }
                 )
@@ -177,6 +225,7 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
                     },
                     onRetry = { viewModel.loadRepoDetail(owner, name) },
                     onBrowseFiles = { navController.navigate(Destinations.repoFiles(owner, name)) },
+                    onOpenActions = { navController.navigate(Destinations.repoActions(owner, name)) },
                     onNewIssue = { navController.navigate(Destinations.createIssue(owner, name)) },
                     onNewPr = { navController.navigate(Destinations.createPr(owner, name)) }
                 )
@@ -216,12 +265,14 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
 
                 PullRequestDetailScreen(
                     pr = viewModel.currentPr,
+                    checkRuns = viewModel.checkRuns,
                     onBack = { navController.popBackStack() },
                     onRetry = { viewModel.loadPrDetail(owner, name, number) },
                     onMerge = { viewModel.mergePr(owner, name, number) },
                     isMerging = viewModel.isMerging,
                     mergeError = viewModel.mergeError,
-                    onViewFiles = { navController.navigate(Destinations.prFiles(owner, name, number)) }
+                    onViewFiles = { navController.navigate(Destinations.prFiles(owner, name, number)) },
+                    onOpenCheck = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                 )
             }
             composable(
@@ -337,6 +388,23 @@ fun HubApp(viewModel: AppViewModel, refreshApiAndGet: () -> com.example.githubcl
                             navController.navigate(Destinations.prDetail(owner, name, pr.number))
                         }
                     }
+                )
+            }
+            composable(
+                route = Destinations.REPO_ACTIONS,
+                arguments = listOf(navArgument("owner") { type = NavType.StringType }, navArgument("name") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val owner = backStackEntry.arguments?.getString("owner").orEmpty()
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+
+                LaunchedEffect(owner, name) { viewModel.loadWorkflowRuns(owner, name) }
+
+                ActionsScreen(
+                    repoFullName = "$owner/$name",
+                    runs = viewModel.workflowRuns,
+                    onBack = { navController.popBackStack() },
+                    onRetry = { viewModel.loadWorkflowRuns(owner, name) },
+                    onOpenRun = { run -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(run.htmlUrl))) }
                 )
             }
         }
