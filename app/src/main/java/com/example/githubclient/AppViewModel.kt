@@ -85,6 +85,12 @@ class AppViewModel(
     var createPrError by mutableStateOf<String?>(null)
         private set
 
+    // --- GitHub Actions ---
+    var checkRuns by mutableStateOf<LoadState<List<CheckRun>>>(LoadState.Loading)
+        private set
+    var workflowRuns by mutableStateOf<LoadState<List<WorkflowRun>>>(LoadState.Loading)
+        private set
+
     fun updateApi(newClients: GitHubClients) {
         clients = newClients
     }
@@ -193,7 +199,7 @@ class AppViewModel(
                 ).unwrap().repository?.issue
 
                 if (issue == null) {
-                    val err = LoadState.Error("That issue couldn't be found.")
+                    val err = LoadState.Error<Nothing>("That issue couldn't be found.")
                     currentIssue = err
                     issueComments = err
                 } else {
@@ -254,6 +260,7 @@ class AppViewModel(
         currentPr = LoadState.Loading
         mergeError = null
         currentPrNodeId = null
+        checkRuns = LoadState.Loading
         viewModelScope.launch {
             try {
                 val pr = clients!!.graphql.prDetail(
@@ -264,7 +271,9 @@ class AppViewModel(
                     currentPr = LoadState.Error("That pull request couldn't be found.")
                 } else {
                     currentPrNodeId = GraphQLMapper.nodeId(pr)
-                    currentPr = LoadState.Success(GraphQLMapper.toPullRequest(pr))
+                    val mapped = GraphQLMapper.toPullRequest(pr)
+                    currentPr = LoadState.Success(mapped)
+                    loadCheckRuns(owner, name, mapped.head.ref)
                 }
             } catch (e: Exception) {
                 currentPr = LoadState.Error(friendlyMessage(e))
@@ -360,6 +369,28 @@ class AppViewModel(
         viewModelScope.launch {
             fileContent = try {
                 LoadState.Success(clients!!.rest.getFileContent(owner, name, path))
+            } catch (e: Exception) {
+                LoadState.Error(friendlyMessage(e))
+            }
+        }
+    }
+
+    fun loadCheckRuns(owner: String, name: String, ref: String) {
+        checkRuns = LoadState.Loading
+        viewModelScope.launch {
+            checkRuns = try {
+                LoadState.Success(clients!!.rest.getCheckRuns(owner, name, ref).checkRuns)
+            } catch (e: Exception) {
+                LoadState.Error(friendlyMessage(e))
+            }
+        }
+    }
+
+    fun loadWorkflowRuns(owner: String, name: String) {
+        workflowRuns = LoadState.Loading
+        viewModelScope.launch {
+            workflowRuns = try {
+                LoadState.Success(clients!!.rest.getWorkflowRuns(owner, name).workflowRuns)
             } catch (e: Exception) {
                 LoadState.Error(friendlyMessage(e))
             }
