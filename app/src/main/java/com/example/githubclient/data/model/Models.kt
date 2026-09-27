@@ -158,3 +158,31 @@ fun RepoContent.decodedText(): String? {
         null
     }
 }
+
+// --- GitHub Actions: check runs (per-commit CI status) ---
+
+data class CheckRun(
+    val id: Long,
+    val name: String,
+    val status: String, // "queued" | "in_progress" | "completed"
+    val conclusion: String?, // "success" | "failure" | "neutral" | "cancelled" | "skipped" | "timed_out" | "action_required" | "stale" | null
+    @SerializedName("started_at") val startedAt: String?,
+    @SerializedName("html_url") val htmlUrl: String?
+)
+
+// --- GitHub Actions: workflow runs (repo-level Actions tab) ---
+
+data class WorkflowRun(
+    val id: Long,
+    val name: String?,
+    @SerializedName("display_title") val displayTitle: String?,
+    @SerializedName("head_branch") val headBranch: String?,
+    @SerializedName("head_sha") val headSha: String?,
+    val status: String, // "queued" | "in_progress" | "completed"
+    val conclusion: String?,
+    @SerializedName("run_number") val runNumber: Int,
+    val event: String?,
+    @SerializedName("html_url") val htmlUrl: String,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("updated_at") val updatedAt: String
+)
