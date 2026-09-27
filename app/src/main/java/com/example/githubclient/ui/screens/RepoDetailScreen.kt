@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ fun RepoDetailScreen(
     onPrClick: (PullRequest) -> Unit,
     onRetry: () -> Unit,
     onBrowseFiles: () -> Unit,
+    onOpenActions: () -> Unit,
     onNewIssue: () -> Unit,
     onNewPr: () -> Unit
 ) {
@@ -47,6 +49,9 @@ fun RepoDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenActions) {
+                        Icon(Icons.Filled.PlayCircleOutline, contentDescription = "Actions")
+                    }
                     IconButton(onClick = onBrowseFiles) {
                         Icon(Icons.Filled.Folder, contentDescription = "Browse files")
                     }
