@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.githubclient.data.GitHubClients
 import com.example.githubclient.data.TokenManager
+import com.example.githubclient.data.CreateIssueBody
+import com.example.githubclient.data.CreatePrBody
 import com.example.githubclient.data.graphql.*
 import com.example.githubclient.data.model.*
 import com.example.githubclient.ui.screens.LoadState
@@ -58,6 +60,30 @@ class AppViewModel(
     var mergeError by mutableStateOf<String?>(null)
         private set
     private var currentPrNodeId: String? = null
+
+    // --- PR diff viewer ---
+    var prFiles by mutableStateOf<LoadState<List<PrFile>>>(LoadState.Loading)
+        private set
+
+    // --- Repo file browser ---
+    var repoBrowser by mutableStateOf<LoadState<List<RepoContent>>>(LoadState.Loading)
+        private set
+    var fileContent by mutableStateOf<LoadState<RepoContent>>(LoadState.Loading)
+        private set
+
+    // --- Branches (for the create-PR branch pickers) ---
+    var branches by mutableStateOf<LoadState<List<BranchRef>>>(LoadState.Loading)
+        private set
+
+    // --- Create issue / PR ---
+    var isCreatingIssue by mutableStateOf(false)
+        private set
+    var createIssueError by mutableStateOf<String?>(null)
+        private set
+    var isCreatingPr by mutableStateOf(false)
+        private set
+    var createPrError by mutableStateOf<String?>(null)
+        private set
 
     fun updateApi(newClients: GitHubClients) {
         clients = newClients
@@ -208,6 +234,22 @@ class AppViewModel(
         }
     }
 
+    fun createIssue(owner: String, name: String, title: String, body: String, onSuccess: (Issue) -> Unit) {
+        if (title.isBlank()) return
+        isCreatingIssue = true
+        createIssueError = null
+        viewModelScope.launch {
+            try {
+                val issue = clients!!.rest.createIssue(owner, name, CreateIssueBody(title, body.ifBlank { null }))
+                onSuccess(issue)
+            } catch (e: Exception) {
+                createIssueError = friendlyMessage(e)
+            } finally {
+                isCreatingIssue = false
+            }
+        }
+    }
+
     fun loadPrDetail(owner: String, name: String, number: Int) {
         currentPr = LoadState.Loading
         mergeError = null
@@ -253,11 +295,83 @@ class AppViewModel(
         }
     }
 
+    fun loadPrFiles(owner: String, name: String, number: Int) {
+        prFiles = LoadState.Loading
+        viewModelScope.launch {
+            prFiles = try {
+                LoadState.Success(clients!!.rest.getPullRequestFiles(owner, name, number))
+            } catch (e: Exception) {
+                LoadState.Error(friendlyMessage(e))
+            }
+        }
+    }
+
+    fun createPullRequest(
+        owner: String,
+        name: String,
+        title: String,
+        body: String,
+        head: String,
+        base: String,
+        draft: Boolean,
+        onSuccess: (PullRequest) -> Unit
+    ) {
+        if (title.isBlank() || head.isBlank() || base.isBlank()) return
+        isCreatingPr = true
+        createPrError = null
+        viewModelScope.launch {
+            try {
+                val pr = clients!!.rest.createPullRequest(owner, name, CreatePrBody(title, body.ifBlank { null }, head, base, draft))
+                onSuccess(pr)
+            } catch (e: Exception) {
+                createPrError = friendlyMessage(e)
+            } finally {
+                isCreatingPr = false
+            }
+        }
+    }
+
+    fun loadBranches(owner: String, name: String) {
+        branches = LoadState.Loading
+        viewModelScope.launch {
+            branches = try {
+                LoadState.Success(clients!!.rest.getBranches(owner, name))
+            } catch (e: Exception) {
+                LoadState.Error(friendlyMessage(e))
+            }
+        }
+    }
+
+    fun loadRepoContents(owner: String, name: String, path: String) {
+        repoBrowser = LoadState.Loading
+        viewModelScope.launch {
+            repoBrowser = try {
+                val items = clients!!.rest.getDirectoryContents(owner, name, path)
+                    .sortedWith(compareByDescending<RepoContent> { it.isDirectory }.thenBy { it.name.lowercase() })
+                LoadState.Success(items)
+            } catch (e: Exception) {
+                LoadState.Error(friendlyMessage(e))
+            }
+        }
+    }
+
+    fun loadFileContent(owner: String, name: String, path: String) {
+        fileContent = LoadState.Loading
+        viewModelScope.launch {
+            fileContent = try {
+                LoadState.Success(clients!!.rest.getFileContent(owner, name, path))
+            } catch (e: Exception) {
+                LoadState.Error(friendlyMessage(e))
+            }
+        }
+    }
+
     private fun friendlyMessage(e: Exception): String = when (e) {
         is HttpException -> when (e.code()) {
             401 -> "Your token is no longer valid. Try signing out and back in."
             403 -> "GitHub blocked this request -- you may have hit a rate limit."
             404 -> "That couldn't be found. It may have been deleted or you lack access."
+            422 -> "GitHub rejected that -- double-check the details and try again."
             else -> "GitHub returned an error (${e.code()})."
         }
         is GraphQLException -> e.message ?: "GitHub's GraphQL API returned an error."
